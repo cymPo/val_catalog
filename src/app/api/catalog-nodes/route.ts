@@ -9,6 +9,10 @@ type CatalogResponse = {
   nodes: Array<Record<string, unknown>>;
 };
 
+type GroupCatalogNode =
+  | { type: "product"; id: string; name: string; brand: null }
+  | { type: "variant"; id: string; name: string };
+
 export async function GET(request: NextRequest) {
   const tenantId = request.nextUrl.searchParams.get("tenantId") ?? DEFAULT_TENANT_ID;
   const categoryId = request.nextUrl.searchParams.get("categoryId");
@@ -410,7 +414,7 @@ async function getGroupNodes({
   const variantById = new Map((variantsRes.data ?? []).map((variant) => [variant.id, variant]));
 
   const nodes = groupItems
-    .map((item) => {
+    .map((item): GroupCatalogNode | null => {
       if (item.item_type === "product") {
         const product = productById.get(item.item_id);
         if (!product) return null;
@@ -421,7 +425,7 @@ async function getGroupNodes({
       if (!variant) return null;
       return { type: "variant", id: variant.id, name: variant.name };
     })
-    .filter((node): node is Record<string, unknown> => node !== null);
+    .filter((node): node is GroupCatalogNode => node !== null);
 
   return NextResponse.json<CatalogResponse>({
     scope: "group",
